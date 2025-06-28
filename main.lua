@@ -1,4 +1,99 @@
--- Hàm tạo checkbox ✅ 🔲
+-- ruilazy-esp • FULL SCRIPT UI • Version June 2025
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local CoreGui = game:GetService("CoreGui")
+
+-- Remove old UI if exists
+pcall(function() CoreGui["ruilazy-esp"]:Destroy() end)
+
+local ScreenGui = Instance.new("ScreenGui", CoreGui)
+ScreenGui.Name = "ruilazy-esp"
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.ResetOnSpawn = false
+
+-- 🌸 UI Frame
+local Frame = Instance.new("Frame", ScreenGui)
+Frame.Size = UDim2.new(0, 500, 0, 340)
+Frame.Position = UDim2.new(0, 20, 0.5, -170)
+Frame.BackgroundColor3 = Color3.fromRGB(255, 210, 235)
+Frame.BorderSizePixel = 0
+Frame.Visible = false
+
+-- Nút tròn bật tắt menu
+local OpenButton = Instance.new("ImageButton", ScreenGui)
+OpenButton.Size = UDim2.new(0, 40, 0, 40)
+OpenButton.Position = UDim2.new(0, 10, 0, 100)
+OpenButton.BackgroundColor3 = Color3.fromRGB(255, 182, 193)
+OpenButton.BorderSizePixel = 0
+OpenButton.Image = "rbxassetid://7743878856" -- Hình logo Discord (có thể đổi)
+
+OpenButton.MouseButton1Click:Connect(function()
+	Frame.Visible = not Frame.Visible
+end)
+
+-- Tabs + Content
+local SideBar = Instance.new("Frame", Frame)
+SideBar.Size = UDim2.new(0, 120, 1, 0)
+SideBar.BackgroundColor3 = Color3.fromRGB(255, 160, 200)
+SideBar.BorderSizePixel = 0
+
+local Content = Instance.new("Frame", Frame)
+Content.Position = UDim2.new(0, 120, 0, 0)
+Content.Size = UDim2.new(1, -120, 1, 0)
+Content.BackgroundTransparency = 1
+
+local UIList = Instance.new("UIListLayout", SideBar)
+UIList.SortOrder = Enum.SortOrder.LayoutOrder
+UIList.Padding = UDim.new(0, 6)
+
+-- Danh sách tab
+local Tabs = {}
+local Pages = {}
+local TabNames = {
+	["Thông tin"] = "Thông tin script",
+	["Trang chính"] = "Tổng quan menu",
+	["Event Summer"] = "Sự kiện Summer",
+	["🛒 Shop"] = "Tự động Mua Egg & Seed",
+	["Cài đặt"] = "Cài đặt hệ thống"
+}
+
+for name, title in pairs(TabNames) do
+	local Btn = Instance.new("TextButton", SideBar)
+	Btn.Size = UDim2.new(1, -12, 0, 36)
+	Btn.Position = UDim2.new(0, 6, 0, 0)
+	Btn.Text = name
+	Btn.BackgroundColor3 = Color3.fromRGB(255, 140, 180)
+	Btn.TextColor3 = Color3.new(1, 1, 1)
+	Btn.Font = Enum.Font.GothamBold
+	Btn.TextSize = 16
+	Btn.AutoButtonColor = true
+
+	local Page = Instance.new("ScrollingFrame", Content)
+	Page.Size = UDim2.new(1, 0, 1, 0)
+	Page.ScrollBarThickness = 4
+	Page.CanvasSize = UDim2.new(0, 0, 0, 800)
+	Page.Visible = false
+	Page.Name = name
+	Page.BackgroundTransparency = 1
+
+	local PageLayout = Instance.new("UIListLayout", Page)
+	PageLayout.SortOrder = Enum.SortOrder.LayoutOrder
+	PageLayout.Padding = UDim.new(0, 6)
+
+	Btn.MouseButton1Click:Connect(function()
+		for _, page in pairs(Content:GetChildren()) do
+			if page:IsA("ScrollingFrame") then
+				page.Visible = false
+			end
+		end
+		Page.Visible = true
+	end)
+
+	if name == "Thông tin" then Page.Visible = true end
+
+	Tabs[name] = Btn
+	Pages[name] = Page
+end-- Hàm tạo checkbox ✅ 🔲
 local function CreateCheckbox(parent, text, default, callback)
 	local button = Instance.new("TextButton")
 	button.Size = UDim2.new(1, -10, 0, 32)
@@ -58,7 +153,7 @@ local function CreateChecklist(parent, title, items)
 	end
 
 	return toggles
-end-- 📦 Tab SHOP
+	end-- 📦 Tab SHOP
 local eggList = {
 	"Common Egg", "Rare Egg", "Legendary Egg",
 	"Mythical Egg", "Bug Egg", "Paradise Egg", "Bee Egg"
