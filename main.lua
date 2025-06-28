@@ -1,269 +1,278 @@
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local LocalPlayer = Players.LocalPlayer
-local Workspace = game:GetService("Workspace")
-local Lighting = game:GetService("Lighting")
-local CoreGui = game:GetService("CoreGui")
+-- Hàm tạo checkbox ✅ 🔲
+local function CreateCheckbox(parent, text, default, callback)
+	local button = Instance.new("TextButton")
+	button.Size = UDim2.new(1, -10, 0, 32)
+	button.BackgroundColor3 = Color3.fromRGB(255, 182, 193)
+	button.TextColor3 = Color3.new(1, 1, 1)
+	button.Font = Enum.Font.Gotham
+	button.TextSize = 14
+	button.TextXAlignment = Enum.TextXAlignment.Left
+	button.Text = (default and "✅ " or "🔲 ") .. text
 
+	local state = default
+	button.MouseButton1Click:Connect(function()
+		state = not state
+		button.Text = (state and "✅ " or "🔲 ") .. text
+		if callback then callback(state) end
+	end)
+
+	button.Parent = parent
+	return function() return state end
+end
+
+-- Hàm tạo danh sách chọn nhiều (checkbox list)
+local function CreateChecklist(parent, title, items)
+	local titleLabel = Instance.new("TextLabel", parent)
+	titleLabel.Size = UDim2.new(1, -10, 0, 28)
+	titleLabel.Text = "🔽 " .. title
+	titleLabel.BackgroundTransparency = 1
+	titleLabel.TextColor3 = Color3.new(1, 1, 1)
+	titleLabel.Font = Enum.Font.GothamBold
+	titleLabel.TextSize = 16
+	titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+	local container = Instance.new("Frame", parent)
+	container.Size = UDim2.new(1, -10, 0, #items * 30)
+	container.BackgroundTransparency = 1
+
+	local listLayout = Instance.new("UIListLayout", container)
+	listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+	listLayout.Padding = UDim.new(0, 4)
+
+	local toggles = {}
+	for _, name in ipairs(items) do
+		local state = false
+		local item = Instance.new("TextButton", container)
+		item.Size = UDim2.new(1, 0, 0, 28)
+		item.BackgroundColor3 = Color3.fromRGB(255, 210, 230)
+		item.TextColor3 = Color3.new(1, 1, 1)
+		item.Font = Enum.Font.Gotham
+		item.TextSize = 14
+		item.Text = "🔲 " .. name
+		item.TextXAlignment = Enum.TextXAlignment.Left
+		item.MouseButton1Click:Connect(function()
+			state = not state
+			item.Text = (state and "✅ " or "🔲 ") .. name
+		end)
+		toggles[name] = function() return state end
+	end
+
+	return toggles
+end-- 📦 Tab SHOP
+local eggList = {
+	"Common Egg", "Rare Egg", "Legendary Egg",
+	"Mythical Egg", "Bug Egg", "Paradise Egg", "Bee Egg"
+}
+local seedList = {
+	"Carrot", "Strawberry", "Blueberry", "Tomato", "Cauliflower",
+	"Watermelon", "Green Apple", "Avocado", "Pineapple", "Banana",
+	"Prickly Pear", "Bell Pepper", "Kiwi", "Feijoa", "Loquat", "Sugar Apple"
+}
+
+local shopPage = Pages["🛒 Shop"]
+local eggToggles = CreateChecklist(shopPage, "Auto Mua Egg", eggList)
+local seedToggles = CreateChecklist(shopPage, "Auto Mua Seed", seedList)
+
+-- Nút tới Tom
+local tpTom = Instance.new("TextButton", shopPage)
+tpTom.Size = UDim2.new(0, 160, 0, 30)
+tpTom.Text = "📍 Teleport tới Tom"
+tpTom.BackgroundColor3 = Color3.fromRGB(200, 100, 200)
+tpTom.TextColor3 = Color3.new(1,1,1)
+tpTom.Font = Enum.Font.GothamBold
+tpTom.TextSize = 14
+tpTom.MouseButton1Click:Connect(function()
+	local tom = workspace:FindFirstChild("Tom")
+	if tom and tom:FindFirstChild("HumanoidRootPart") then
+		local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+		if hrp then
+			hrp.CFrame = tom.HumanoidRootPart.CFrame + Vector3.new(0, 3, 0)
+		end
+	end
+end)
+tpTom.Parent = shopPage-- ⚙️ Tab Cài đặt
+local settingPage = Pages["Cài đặt"]
+
+local safeTeleToggle = CreateCheckbox(settingPage, "Dịch chuyển an toàn (Safe Teleport)", false)
+
+local antiAfkToggle = CreateCheckbox(settingPage, "Bật chống bị văng AFK", false, function(state)
+	if state then
+		LocalPlayer.Idled:Connect(function()
+			local vu = game:GetService("VirtualUser")
+			vu:Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+			task.wait(1)
+			vu:Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+		end)
+	end
+end)
+
+CreateCheckbox(settingPage, "🧹 Xoá bầu trời (Sky)", false, function(on)
+	if on then pcall(function() workspace:FindFirstChildOfClass("Sky"):Destroy() end) end
+end)
+
+CreateCheckbox(settingPage, "❌ Xoá skin người chơi khác", false, function(on)
+	if on then
+		for _, p in pairs(Players:GetPlayers()) do
+			if p ~= LocalPlayer and p.Character then
+				for _, v in pairs(p.Character:GetDescendants()) do
+					if v:IsA("MeshPart") or v:IsA("Accessory") then
+						v:Destroy()
+					end
+				end
+			end
+		end
+	end
+end)
+
+CreateCheckbox(settingPage, "🍃 Xoá trái cây trong vườn người khác", false, function(on)
+	if on then
+		for _, v in pairs(workspace:GetDescendants()) do
+			if v:IsA("Model") and v:FindFirstChild("Fruit") and not v:IsDescendantOf(LocalPlayer) then
+				v:Destroy()
+			end
+		end
+	end
+end)
+
+CreateCheckbox(settingPage, "🌫️ Giảm tầm nhìn", false, function(on)
+	if on and workspace:FindFirstChild("Terrain") then
+		workspace.Terrain.FogEnd = 50
+	end
+end)
+
+CreateCheckbox(settingPage, "💻 Đồ hoạ cực thấp", false, function(on)
+	if on then
+		settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
+	end
+end)
+
+CreateCheckbox(settingPage, "🎯 Giữ FPS ở mức 60", true, function(on)
+	if on then setfpscap(60) end
+end)-- 🎉 Tab Event Summer
+local eventPage = Pages["Event Summer"]
+
+local autoSummerToggle = CreateCheckbox(eventPage, "⚡ Auto làm sự kiện Summer", false)
+
+local fruitList = {
+	"Carrot", "Strawberry", "Blueberry", "Wild Carrot", "Pear", "Tomato", "Cauliflower",
+	"Cantaloupe", "Watermelon", "Green Apple", "Avocado", "Banana", "Pineapple", "Kiwi",
+	"Bell Pepper", "Prickly Pear", "Parasol Flower", "Rosy Delight", "Loquat", "Feijoa",
+	"Sugar Apple", "Elephant Ears"
+}
+
+-- Tự động thu hoạch fruit từ YourFarmPlot
+spawn(function()
+	while task.wait(2) do
+		if autoSummerToggle() then
+			for _, plot in pairs(workspace:GetChildren()) do
+				if plot.Name == "YourFarmPlot" then
+					for _, v in pairs(plot:GetDescendants()) do
+						if v:IsA("Model") and table.find(fruitList, v.Name) then
+							firetouchinterest(LocalPlayer.Character.HumanoidRootPart, v, 0)
+							firetouchinterest(LocalPlayer.Character.HumanoidRootPart, v, 1)
+						end
+					end
+				end
+			end
+		end
+	end
+end)
+
+-- Tự động nộp trái vào giỏ event
+spawn(function()
+	while task.wait(1) do
+		if autoSummerToggle() then
+			local basket = workspace:FindFirstChild("Basket")
+			if basket and basket:FindFirstChild("ClickDetector") then
+				fireclickdetector(basket.ClickDetector)
+			end
+		end
+	end
+end)-- 🐣 ESP Trứng + Tên Pet (hiển thị trên Egg)
+local autoESP = CreateCheckbox(eventPage, "👁️ ESP Trứng & hiện tên pet sắp nở", true)
 local eggCount, petCount = 0, 0
 
-local gui = Instance.new("ScreenGui", CoreGui)
-gui.Name = "RuiLazyESP"
-gui.ResetOnSpawn = false
-
-local toggleBtn = Instance.new("TextButton", gui)
-toggleBtn.Size = UDim2.new(0, 50, 0, 50)
-toggleBtn.Position = UDim2.new(0, 10, 0, 10)
-toggleBtn.BackgroundColor3 = Color3.fromRGB(255, 105, 180)
-toggleBtn.Text = "+"
-toggleBtn.TextColor3 = Color3.new(1, 1, 1)
-toggleBtn.Font = Enum.Font.SourceSansBold
-toggleBtn.TextSize = 24
-toggleBtn.ZIndex = 10
-toggleBtn.AutoButtonColor = true
-toggleBtn.BorderSizePixel = 0
-toggleBtn.TextStrokeTransparency = 0.5
-toggleBtn.TextScaled = true
-
-local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.new(0, 250, 0, 300)
-frame.Position = UDim2.new(0, 70, 0, 10)
-frame.BackgroundColor3 = Color3.fromRGB(255, 192, 203)
-frame.BorderSizePixel = 0
-frame.Active = true
-frame.Draggable = true
-frame.Visible = false
-frame.ZIndex = 10
-
-local function createButton(text, y, callback)
-	local btn = Instance.new("TextButton", frame)
-	btn.Size = UDim2.new(1, -20, 0, 30)
-	btn.Position = UDim2.new(0, 10, 0, y)
-	btn.Text = text
-	btn.BackgroundColor3 = Color3.fromRGB(255, 105, 180)
-	btn.TextColor3 = Color3.new(1, 1, 1)
-	btn.Font = Enum.Font.SourceSansBold
-	btn.TextSize = 16
-	btn.ZIndex = 11
-	btn.MouseButton1Click:Connect(callback)
-end
-
-local function notify(text)
-	pcall(function()
-		game.StarterGui:SetCore("SendNotification", {
-			Title = "RuiLazy-ESP",
-			Text = tostring(text),
-			Duration = 3
-		})
-	end)
-end
-
-local visible = false
-toggleBtn.MouseButton1Click:Connect(function()
-    visible = not visible
-    frame.Visible = visible
-end)
-local function highlightEggs()
-    for _, egg in ipairs(workspace:GetDescendants()) do
-        if egg:IsA("BasePart") and egg.Name:lower():find("egg") and not egg:FindFirstChild("RuiESP") then
-            local tag = Instance.new("BillboardGui", egg)
-            tag.Name = "RuiESP"
-            tag.Size = UDim2.new(0, 100, 0, 40)
-            tag.AlwaysOnTop = true
-
-            local label = Instance.new("TextLabel", tag)
-            label.Size = UDim2.new(1, 0, 1, 0)
-            label.Text = "🥚 EGG"
-            label.TextColor3 = Color3.new(1, 1, 1)
-            label.BackgroundTransparency = 1
-            label.TextScaled = true
-        end
-    end
-end
-
-local function highlightPets()
-    for _, pet in ipairs(workspace:GetDescendants()) do
-        if pet:IsA("BasePart") and pet.Name:lower():find("pet") and not pet:FindFirstChild("RuiESP") then
-            local tag = Instance.new("BillboardGui", pet)
-            tag.Name = "RuiESP"
-            tag.Size = UDim2.new(0, 100, 0, 40)
-            tag.AlwaysOnTop = true
-
-            local label = Instance.new("TextLabel", tag)
-            label.Size = UDim2.new(1, 0, 1, 0)
-            label.Text = "🐾 PET"
-            label.TextColor3 = Color3.fromRGB(255, 255, 0)
-            label.BackgroundTransparency = 1
-            label.TextScaled = true
-        end
-    end
-end
-
-local function autoCollectEggs()
-    for _, egg in ipairs(workspace:GetDescendants()) do
-        if egg:IsA("BasePart") and egg.Name:lower():find("egg") then
-            local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-            if hrp then
-                hrp.CFrame = egg.CFrame + Vector3.new(0, 2, 0)
-                firetouchinterest(hrp, egg, 0)
-                firetouchinterest(hrp, egg, 1)
-                eggCount += 1
-                task.wait(0.1)
-            end
-        end
-    end
-end
-
-local function autoOpenPet()
-    for _, v in ipairs(workspace:GetDescendants()) do
-        if v:IsA("ProximityPrompt") and v.Name:lower():find("open") then
-            fireproximityprompt(v)
-            petCount += 1
-            task.wait(0.5)
-        end
-    end
-end
-
-local function trackPetAfterEgg()
-    for _, egg in ipairs(workspace:GetDescendants()) do
-        if egg:IsA("Model") and egg:FindFirstChild("Countdown") and egg:FindFirstChild("PetName") then
-            local countdown = egg.Countdown
-            countdown:GetPropertyChangedSignal("Text"):Connect(function()
-                if tonumber(countdown.Text) == 0 then
-                    notify("🐾 Sắp nở ra: " .. (egg:FindFirstChild("PetName").Value or "???"))
-                end
-            end)
-        end
-    end
-end
-
-createButton("🔲 ESP Pet & Egg", 10, function()
-    highlightEggs()
-    highlightPets()
-    notify("✅ Hiển thị Egg và Pet")
-end)
-
-createButton("🔲 Auto nhặt trứng", 50, function()
-    RunService.Heartbeat:Connect(autoCollectEggs)
-    notify("✅ Đang tự động nhặt trứng")
-end)
-
-createButton("🔲 Auto mở pet", 90, function()
-    RunService.Heartbeat:Connect(autoOpenPet)
-    notify("✅ Đang tự động mở pet")
-end)
-
-createButton("🔲 Hiện tên pet khi nở", 130, function()
-    trackPetAfterEgg()
-    notify("✅ Bật theo dõi trứng nở")
-end)
-
-local stats = Instance.new("TextLabel", frame)
-stats.Size = UDim2.new(1, -20, 0, 30)
-stats.Position = UDim2.new(0, 10, 0, 230)
-stats.BackgroundTransparency = 1
-stats.TextColor3 = Color3.new(1, 1, 1)
-stats.Text = "🥚 Egg: 0 | 🐾 Pet: 0"
-stats.TextScaled = true
-
-RunService.Heartbeat:Connect(function()
-    stats.Text = "🥚 Egg: " .. tostring(eggCount) .. " | 🐾 Pet: " .. tostring(petCount)
-end)local function isSummerFruit(name)
-    local fruits = {
-        ["Carrot"] = true, ["Strawberry"] = true, ["Blueberry"] = true, ["Wild Carrot"] = true,
-        ["Pear"] = true, ["Tomato"] = true, ["Cauliflower"] = true, ["Cantaloupe"] = true,
-        ["Watermelon"] = true, ["Green Apple"] = true, ["Avocado"] = true, ["Banana"] = true,
-        ["Pineapple"] = true, ["Kiwi"] = true, ["Bell Pepper"] = true, ["Prickly Pear"] = true,
-        ["Parasol Flower"] = true, ["Rosy Delight"] = true, ["Loquat"] = true, ["Feijoa"] = true,
-        ["Sugar Apple"] = true, ["Elephant Ears"] = true
-    }
-    return fruits[name] or false
-end
-
-local function autoFarmSummer()
-    while _G.AutoSummer do
-        for _, fruit in ipairs(workspace.YourFarmPlot:GetDescendants()) do
-            if fruit:IsA("BasePart") and isSummerFruit(fruit.Name) then
-                pcall(function()
-                    local hrp = Players.LocalPlayer.Character.HumanoidRootPart
-                    hrp.CFrame = fruit.CFrame + Vector3.new(0, 3, 0)
-                    firetouchinterest(hrp, fruit, 0)
-                    firetouchinterest(hrp, fruit, 1)
-                    task.wait(0.1)
-                end)
-            end
-        end
-        task.wait(1)
-    end
-end
-
-local function autoSubmitToBasket()
-    local time = os.date("*t")
-    if time.min == 0 and time.sec < 600 then
-        local basket = workspace:FindFirstChild("HarvestBasket") or workspace:FindFirstChild("Basket")
-        if basket then
-            pcall(function()
-                local hrp = Players.LocalPlayer.Character.HumanoidRootPart
-                hrp.CFrame = basket.CFrame + Vector3.new(0, 3, 0)
-                task.wait(1)
-            end)
-        end
-    end
-end
-
 spawn(function()
-    while true do
-        if _G.AutoSummer then
-            autoFarmSummer()
-            task.wait(1)
-            autoSubmitToBasket()
-        end
-        task.wait(3)
-    end
+	while task.wait(1) do
+		if autoESP() then
+			for _, v in pairs(workspace:GetDescendants()) do
+				if v:IsA("Model") and v.Name:lower():find("egg") and not v:FindFirstChild("BillboardGui") then
+					local gui = Instance.new("BillboardGui", v)
+					gui.Size = UDim2.new(0, 100, 0, 40)
+					gui.AlwaysOnTop = true
+					local label = Instance.new("TextLabel", gui)
+					label.Size = UDim2.new(1, 0, 1, 0)
+					label.BackgroundTransparency = 1
+					label.TextColor3 = Color3.new(1, 0.5, 1)
+					label.Font = Enum.Font.GothamBold
+					label.TextScaled = true
+					label.Text = "🐣 " .. (v.PetName and v.PetName.Value or "Egg")
+				end
+			end
+		end
+	end
 end)
 
-_G.SafeTeleport = true
-
-function safeTp(pos)
-    local hrp = Players.LocalPlayer.Character.HumanoidRootPart
-    if _G.SafeTeleport then
-        for i = 1, 10 do
-            hrp.CFrame = hrp.CFrame:Lerp(CFrame.new(pos), 0.2)
-            task.wait(0.05)
-        end
-    else
-        hrp.CFrame = CFrame.new(pos)
-    end
-end
-
-function fixLag()
-    Lighting:ClearAllChildren()
-    for _, v in pairs(Players:GetPlayers()) do
-        if v ~= Players.LocalPlayer and v.Character then
-            v.Character:Destroy()
-        end
-    end
-    for _, obj in pairs(workspace:GetDescendants()) do
-        if obj:IsA("BasePart") and obj.Name == "Fruit" and not obj:IsDescendantOf(workspace.YourFarmPlot) then
-            obj:Destroy()
-        end
-    end
-    if setfpscap then setfpscap(60) end
-end
-
-_G.AutoSummer = false
-
-createButton("🔲 Auto Summer Event", 10, function()
-    _G.AutoSummer = not _G.AutoSummer
-    notify(_G.AutoSummer and "✅ Auto Summer ON" or "🔲 Auto Summer OFF")
+-- 🐾 Auto mở Pet sau khi trứng nở
+local autoOpen = CreateCheckbox(eventPage, "🤖 Auto mở Pet sau khi nở", true)
+spawn(function()
+	while task.wait(2) do
+		if autoOpen() then
+			for _, v in pairs(workspace:GetDescendants()) do
+				if v:IsA("ClickDetector") and v.Parent and v.Parent.Name:lower():find("hatched") then
+					fireclickdetector(v)
+					eggCount += 1
+				end
+			end
+		end
+	end
 end)
 
-createButton("🔲 Safe Teleport", 50, function()
-    _G.SafeTeleport = not _G.SafeTeleport
-    notify(_G.SafeTeleport and "✅ Safe Teleport ON" or "🔲 Safe Teleport OFF")
-end)
+-- 📊 Thống kê số egg và pet
+local statsLabel = Instance.new("TextLabel", eventPage)
+statsLabel.Size = UDim2.new(1, -10, 0, 30)
+statsLabel.TextColor3 = Color3.new(1,1,1)
+statsLabel.BackgroundTransparency = 1
+statsLabel.Font = Enum.Font.GothamBold
+statsLabel.TextSize = 16
+statsLabel.Text = "📦 Egg mở: 0 | 🐾 Pet nhận: 0"
 
-createButton("✅ Giảm Lag", 90, function()
-    fixLag()
-    notify("Đã giảm lag!")
-end)
+-- Cập nhật liên tục
+spawn(function()
+	while task.wait(3) do
+		statsLabel.Text = string.format("📦 Egg mở: %s | 🐾 Pet nhận: %s", eggCount, petCount)
+	end
+end)-- ℹ️ Tab Thông tin Script
+local infoPage = Pages["Thông tin"]
+
+-- Logo ảnh Discord
+local logo = Instance.new("ImageLabel", infoPage)
+logo.Size = UDim2.new(0, 80, 0, 80)
+logo.BackgroundTransparency = 1
+logo.Image = "https://www.roblox.com/asset-thumbnail/image?assetId=7743878856&width=420&height=420&format=png"
+
+local title = Instance.new("TextLabel", infoPage)
+title.Size = UDim2.new(1, -10, 0, 28)
+title.Text = "🌸 Script: ruilazy-esp"
+title.TextColor3 = Color3.new(1, 1, 1)
+title.BackgroundTransparency = 1
+title.Font = Enum.Font.GothamBold
+title.TextSize = 18
+
+local author = Instance.new("TextLabel", infoPage)
+author.Size = UDim2.new(1, -10, 0, 24)
+author.Text = "📣 Tác giả: @RuiLazy (Discord)"
+author.TextColor3 = Color3.new(1, 1, 1)
+author.BackgroundTransparency = 1
+author.Font = Enum.Font.Gotham
+author.TextSize = 16
+
+local note = Instance.new("TextLabel", infoPage)
+note.Size = UDim2.new(1, -10, 0, 60)
+note.Text = "✨ Script đa năng dành riêng cho Grow a Garden\nESP, Auto Egg, Event, Giảm lag, Mở Pet, và hơn thế nữa!"
+note.TextColor3 = Color3.new(1, 1, 1)
+note.BackgroundTransparency = 1
+note.Font = Enum.Font.Gotham
+note.TextSize = 14
+note.TextWrapped = true
+note.TextYAlignment = Enum.TextYAlignment.Top
